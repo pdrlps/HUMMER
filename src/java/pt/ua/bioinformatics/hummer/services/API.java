@@ -48,6 +48,10 @@ public class API {
         API.relList.put("icd102uniprot", 30);
         API.relList.put("hgncid2hgncsymbol", 31);
         API.relList.put("hgncsymbol2hgncid", 32);
+        API.relList.put("omim2orphanet", 33);
+        API.relList.put("orphanet2omim", 34);
+        API.relList.put("orphanet2icd10", 35);
+        API.relList.put("icd102orphanet", 36);
     }
     
     static public String list(String rel, String id, String format) {

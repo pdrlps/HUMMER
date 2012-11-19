@@ -30,7 +30,11 @@ public class Loader {
         //pharm.load("pharmgkb2hgnc");
         //Import kegg = new Import("kegg","hgnc","kegg2hgnc",'\t');
         //kegg.load("kegg2hgnc");
-        Import icd = new Import("hgncid","hgncsymbol","hgncid2hgncsymbol",'\t');
-        icd.load("hgncid2hgncsymbol");
+        //Import icd = new Import("hgncid","hgncsymbol","hgncid2hgncsymbol",'\t');
+        //icd.load("hgncid2hgncsymbol");
+       // Orpha o = new Orpha();
+        //o.load();
+        Import orpha = new Import("orphanet", "icd10", "orphanet2icd10", '\t');
+        orpha.load("orphanet2icd10");
     }
 }

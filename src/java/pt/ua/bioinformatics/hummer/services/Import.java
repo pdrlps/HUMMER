@@ -7,6 +7,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  *
@@ -113,9 +122,9 @@ public class Import {
                 db.connect();
                 while ((nextLine = reader.readNext()) != null) {
                     String hgnc = nextLine[0].replace("HGNC:", "");
-                        db.insert(hgnc, "INSERT INTO hummer (a, b, rel) values('" + hgnc + "','" + nextLine[1] + "'," + API.relList.get(from + "2" + to) + ");");
-                        db.insert(nextLine[1], "INSERT INTO hummer (a, b, rel) values('" + nextLine[1]  + "','" + hgnc + "'," + API.relList.get(to + "2" + from) + ");");
-                    }
+                    db.insert(hgnc, "INSERT INTO hummer (a, b, rel) values('" + hgnc + "','" + nextLine[1] + "'," + API.relList.get(from + "2" + to) + ");");
+                    db.insert(nextLine[1], "INSERT INTO hummer (a, b, rel) values('" + nextLine[1] + "','" + hgnc + "'," + API.relList.get(to + "2" + from) + ");");
+                }
                 db.close();
             } catch (Exception ex) {
                 Logger.getLogger(Import.class.getName()).log(Level.SEVERE, null, ex);
@@ -333,5 +342,88 @@ public class Import {
             }
         }
 
+        if (what.equals("omim2orphanet")) {
+            DB db = new DB();
+            try {
+                db.connect();
+                DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
+                domFactory.setNamespaceAware(true);
+                DocumentBuilder builder = domFactory.newDocumentBuilder();
+                Document doc = builder.parse("src/orphanet.xml");
+                XPath disorders = XPathFactory.newInstance().newXPath();
+                XPathExpression exprDisorders = disorders.compile("//Disorder");
+                NodeList nodes = (NodeList) exprDisorders.evaluate(doc, XPathConstants.NODESET);
+                    Pattern p = Pattern.compile("[0-9]{6}");
+
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    Node disorder = nodes.item(i);
+                    XPath ids = XPathFactory.newInstance().newXPath();
+                    XPathExpression exprIds = ids.compile("@id");
+                    Node id = (Node) exprIds.evaluate(disorder, XPathConstants.NODE);
+                    String orphanet = id.getNodeValue();
+                    try {
+                        XPath omims = XPathFactory.newInstance().newXPath();
+                        XPathExpression exprOmim = omims.compile("ExternalReferenceList/ExternalReference/Reference");
+                        NodeList resultOmim = (NodeList) exprOmim.evaluate(disorder, XPathConstants.NODESET);
+
+                        for (int j = 0; j < resultOmim.getLength(); j++) {
+
+                            Matcher m = p.matcher(resultOmim.item(j).getTextContent());
+                            while (m.find()) {
+                                String omim = m.group();
+                                db.insert(orphanet, "INSERT INTO hummer (a, b, rel) values('" + omim + "','" + orphanet + "'," + API.relList.get("omim2orphanet") + ");");
+                                db.insert(orphanet, "INSERT INTO hummer (a, b, rel) values('" + orphanet + "','" + omim + "'," + API.relList.get("orphanet2omim") + ");");
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println(e.getLocalizedMessage());
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+         if (what.equals("orphanet2icd10")) {
+            DB db = new DB();
+            try {
+                db.connect();
+                DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
+                domFactory.setNamespaceAware(true);
+                DocumentBuilder builder = domFactory.newDocumentBuilder();
+                Document doc = builder.parse("src/orphanet.xml");
+                XPath disorders = XPathFactory.newInstance().newXPath();
+                XPathExpression exprDisorders = disorders.compile("//Disorder");
+                NodeList nodes = (NodeList) exprDisorders.evaluate(doc, XPathConstants.NODESET);
+                    Pattern p = Pattern.compile("^[A-Z]\\d{2}(\\.\\d){0,1}$");
+
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    Node disorder = nodes.item(i);
+                    XPath ids = XPathFactory.newInstance().newXPath();
+                    XPathExpression exprIds = ids.compile("@id");
+                    Node id = (Node) exprIds.evaluate(disorder, XPathConstants.NODE);
+                    String orphanet = id.getNodeValue();
+                    try {
+                        XPath omims = XPathFactory.newInstance().newXPath();
+                        XPathExpression exprOmim = omims.compile("ExternalReferenceList/ExternalReference/Reference");
+                        NodeList resultOmim = (NodeList) exprOmim.evaluate(disorder, XPathConstants.NODESET);
+
+                        for (int j = 0; j < resultOmim.getLength(); j++) {
+
+                            Matcher m = p.matcher(resultOmim.item(j).getTextContent());
+                            while (m.find()) {
+                                String icd10 = m.group();
+                                db.insert(orphanet, "INSERT INTO hummer (a, b, rel) values('" + orphanet + "','" + icd10  + "'," + API.relList.get("orphanet2icd10") + ");");
+                                db.insert(orphanet, "INSERT INTO hummer (a, b, rel) values('" + icd10 + "','" + orphanet + "'," + API.relList.get("icd102orphanet") + ");");
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println(e.getLocalizedMessage());
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
     }
 }
